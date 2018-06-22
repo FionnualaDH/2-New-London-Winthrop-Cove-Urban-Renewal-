@@ -1,0 +1,12 @@
+Setting,Customize,Hints,Examples
+Storymap Info,,,
+Map Title,Heatmap Demo (from Sheets),,
+Map Subtitle,Subtitle for Heatmap,,
+Map Settings,,,
+Basemap Tiles,CartoDB.PositronNoLabels,Drop-down menu for background basemap tiles,https://leaflet-extras.github.io/leaflet-providers/preview/
+Zoom Controls,off,,
+Credits,,,
+Author Name,Jack Dougherty,"Appears in map credits as ""View data by..."" (or leave blank)",
+Author Email or Website,jack.dougherty@trincoll.edu,Create link in Author Name by inserting your email or web address (or leave blank),
+Author GitHub Repo Link,https://github.com/JackDougherty/leaflet-maps-with-google-sheets,"Appears in map credits as ""View code..."" link (leave as-is OR insert link to your own GitHub code repo)",
+Code Credit,"<a href=""http://datavizforall.org"">DataVizForAll</a>",,
