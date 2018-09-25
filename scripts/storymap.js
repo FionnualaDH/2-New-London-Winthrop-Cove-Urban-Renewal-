@@ -15,26 +15,10 @@ $(window).on('load', function() {
    */
    var mapData;
 
-   $.ajax({
-     url:'csv/Options.csv',
-     type:'HEAD',
-     error: function() {
-       // Options.csv does not exist, so use Tabletop to fetch data from
-       // the Google sheet
-       mapData = Tabletop.init({
-         key: googleDocURL,
-         callback: function(data, mapData) { initMap(); }
-       });
-     },
-     success: function() {
-       // Get all data from .csv files
-       mapData = Procsv;
-       mapData.load({
-         self: mapData,
-         tabs: ['Options', 'Chapters'],
-         callback: initMap
-       });
-     }
+   // Use Tabletop to fetch data from the Google sheet
+   mapData = Tabletop.init({
+     key: googleDocURL,
+     callback: function(data, mapData) { initMap(); }
    });
 
   /**
@@ -83,13 +67,14 @@ $(window).on('load', function() {
     createDocumentSettings(options);
 
     /* Change narrative width */
+    /*
     narrativeWidth = parseInt(getSetting('_narrativeWidth'));
     if (narrativeWidth > 0 && narrativeWidth < 100) {
       var mapWidth = 100 - narrativeWidth;
 
       $('#narration, #title').css('width', narrativeWidth + 'vw');
       $('#map').css('width', mapWidth + 'vw');
-    }
+    }*/
 
     var chapterContainerMargin = 70;
 
@@ -110,6 +95,10 @@ $(window).on('load', function() {
     var chapters = mapData.sheets(constants.chaptersSheetName).elements;
 
     var markers = [];
+    changeMarkerColor = function(n, from, to) {
+      markers[n]._icon.className = markers[n]._icon.className.replace(from, to);
+    }
+
     var pixelsAbove = [];
     var chapterCount = 0;
 
@@ -186,6 +175,12 @@ $(window).on('load', function() {
 
     $('div#contents').scroll(function() {
       var currentPosition = $(this).scrollTop();
+
+      // Make title disappear on scroll
+      if (currentPosition < 200) {
+        $('#title').css('opacity', 1 - Math.min(1, currentPosition / 100));
+      }
+
       for (i = 0; i < pixelsAbove.length - 1; i++) {
         if (currentPosition >= pixelsAbove[i] && currentPosition < (pixelsAbove[i+1] - 2 * chapterContainerMargin) && currentlyInFocus != i) {
           // Remove styling for the old in-focus chapter and
@@ -194,6 +189,12 @@ $(window).on('load', function() {
           $('div#container' + i).addClass("in-focus").removeClass("out-focus");
 
           currentlyInFocus = i;
+
+          for (k = 0; k < pixelsAbove.length - 1; k++) {
+            changeMarkerColor(k, 'orange', 'blue');
+          }
+
+          changeMarkerColor(i, 'blue', 'orange');
 
           // Remove overlay tile layer if needed
           if (map.hasLayer(overlay)) {
