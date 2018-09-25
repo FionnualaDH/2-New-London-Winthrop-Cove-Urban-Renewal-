@@ -126,33 +126,47 @@ $(window).on('load', function() {
         markers.push(null);
       }
 
-      var image = $('<img>', {
-        src: c['Image Link'],
-      });
-
-      var source = $('<a>', {
-        text: c['Image Credit'],
-        href: c['Image Credit Link'],
-        target: "_blank",
-        class: 'source'
-      });
-
       var container = $('<div></div>', {
         id: 'container' + i,
         class: 'chapter-container'
       });
 
-      var imgContainer = $('<div></div', {
-        class: 'img-container'
-      }).append(image);
+      var mediaTypes = {
+        'jpg': 'img',
+        'png': 'img',
+        'mp3': 'audio',
+      }
+
+      var mediaExt = c['Media Link'].split('.').pop();
+      var mediaType = mediaTypes[mediaExt];
+      var media = null;
+
+      var source = $('<a>', {
+        text: c['Media Credit'],
+        href: c['Media Credit Link'],
+        target: "_blank",
+        class: 'source'
+      });
+
+      if (mediaType) {
+        media = $('<' + mediaType + '>', {
+          src: c['Media Link'],
+          controls: mediaType == 'audio' ? 'controls' : '',
+        });
+
+        var mediaContainer = $('<div></div', {
+          class: mediaType + '-container'
+        }).append(media).after(source);
+      }
 
       container
         .append('<p class="chapter-header">' + c['Chapter'] + '</p>')
-        .append(imgContainer)
-        .append(source)
+        .append(media ? mediaContainer : '')
+        .append(media ? source : '')
         .append('<p class="description">' + c['Description'] + '</p>');
 
       $('#contents').append(container);
+
     }
 
     changeAttribution();
