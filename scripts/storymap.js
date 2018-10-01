@@ -218,8 +218,26 @@ $(window).on('load', function() {
           // Add chapter's overlay tiles if specified in options
           if (chapters[i]['Overlay'] != '') {
             var opacity = (chapters[i]['Overlay Transparency'] != '') ? parseFloat(chapters[i]['Overlay Transparency']) : 1;
-            overlay = L.tileLayer(chapters[i]['Overlay'], {opacity: opacity});
-            overlay.addTo(map);
+            var url = chapters[i]['Overlay'];
+
+            if (url.split('.').pop() == 'geojson') {
+              $.getJSON(url, function(geojson) {
+                overlay = L.geoJson(geojson, {
+                  style: function(feature) {
+                    return {
+                      fillColor: feature.properties.COLOR,
+                      weight: 1,
+                      opacity: 0.5,
+                      color: feature.properties.COLOR,
+                      fillOpacity: 0.5,
+                    }
+                  }
+                }).addTo(map);
+              });
+            } else {
+              overlay = L.tileLayer(chapters[i]['Overlay'], {opacity: opacity}).addTo(map);
+            }
+
           }
 
           // Fly to the new marker destination if latitude and longitude exist
