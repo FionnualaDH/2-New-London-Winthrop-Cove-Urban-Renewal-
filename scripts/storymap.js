@@ -126,21 +126,18 @@ $(window).on('load', function() {
         markers.push(null);
       }
 
+      // Add chapter container
       var container = $('<div></div>', {
         id: 'container' + i,
         class: 'chapter-container'
       });
 
-      var mediaTypes = {
-        'jpg': 'img',
-        'png': 'img',
-        'mp3': 'audio',
-      }
 
-      var mediaExt = c['Media Link'].split('.').pop();
-      var mediaType = mediaTypes[mediaExt];
+      // Add media and credits: YouTube, audio, or image
       var media = null;
+      var mediaContainer = null;
 
+      // Add media source
       var source = $('<a>', {
         text: c['Media Credit'],
         href: c['Media Credit Link'],
@@ -148,13 +145,40 @@ $(window).on('load', function() {
         class: 'source'
       });
 
+      // YouTube
+      if (c['Media Link'].indexOf('youtube.com/') > -1) {
+        media = $('<iframe></iframe>', {
+          src: c['Media Link'],
+          width: '100%',
+          height: '100%',
+          frameborder: '0',
+          allow: 'autoplay; encrypted-media',
+          allowfullscreen: 'allowfullscreen',
+        });
+
+        mediaContainer = $('<div></div', {
+          class: 'img-container'
+        }).append(media).after(source);
+      }
+
+      // If not YouTube: either audio or image
+      var mediaTypes = {
+        'jpg': 'img',
+        'jpeg': 'img',
+        'png': 'img',
+        'mp3': 'audio',
+      }
+
+      var mediaExt = c['Media Link'].split('.').pop();
+      var mediaType = mediaTypes[mediaExt];
+
       if (mediaType) {
         media = $('<' + mediaType + '>', {
           src: c['Media Link'],
           controls: mediaType == 'audio' ? 'controls' : '',
         });
 
-        var mediaContainer = $('<div></div', {
+        mediaContainer = $('<div></div', {
           class: mediaType + '-container'
         }).append(media).after(source);
       }
