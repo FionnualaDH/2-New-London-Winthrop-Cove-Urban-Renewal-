@@ -15,26 +15,10 @@ $(window).on('load', function() {
    */
    var mapData;
 
-   $.ajax({
-     url:'csv/Options.csv',
-     type:'HEAD',
-     error: function() {
-       // Options.csv does not exist, so use Tabletop to fetch data from
-       // the Google sheet
-       mapData = Tabletop.init({
-         key: googleDocURL,
-         callback: function(data, mapData) { initMap(); }
-       });
-     },
-     success: function() {
-       // Get all data from .csv files
-       mapData = Procsv;
-       mapData.load({
-         self: mapData,
-         tabs: ['Options', 'Chapters'],
-         callback: initMap
-       });
-     }
+   // Use Tabletop to fetch data from the Google sheet
+   mapData = Tabletop.init({
+     key: googleDocURL,
+     callback: function(data, mapData) { initMap(); }
    });
 
   /**
@@ -83,13 +67,14 @@ $(window).on('load', function() {
     createDocumentSettings(options);
 
     /* Change narrative width */
+    /*
     narrativeWidth = parseInt(getSetting('_narrativeWidth'));
     if (narrativeWidth > 0 && narrativeWidth < 100) {
       var mapWidth = 100 - narrativeWidth;
 
       $('#narration, #title').css('width', narrativeWidth + 'vw');
       $('#map').css('width', mapWidth + 'vw');
-    }
+    }*/
 
     var chapterContainerMargin = 70;
 
@@ -110,6 +95,10 @@ $(window).on('load', function() {
     var chapters = mapData.sheets(constants.chaptersSheetName).elements;
 
     var markers = [];
+    changeMarkerColor = function(n, from, to) {
+      markers[n]._icon.className = markers[n]._icon.className.replace(from, to);
+    }
+
     var pixelsAbove = [];
     var chapterCount = 0;
 
@@ -137,33 +126,71 @@ $(window).on('load', function() {
         markers.push(null);
       }
 
-      var image = $('<img>', {
-        src: c['Image Link'],
-      });
-
-      var source = $('<a>', {
-        text: c['Image Credit'],
-        href: c['Image Credit Link'],
-        target: "_blank",
-        class: 'source'
-      });
-
+      // Add chapter container
       var container = $('<div></div>', {
         id: 'container' + i,
         class: 'chapter-container'
       });
 
-      var imgContainer = $('<div></div', {
-        class: 'img-container'
-      }).append(image);
+
+      // Add media and credits: YouTube, audio, or image
+      var media = null;
+      var mediaContainer = null;
+
+      // Add media source
+      var source = $('<a>', {
+        text: c['Media Credit'],
+        href: c['Media Credit Link'],
+        target: "_blank",
+        class: 'source'
+      });
+
+      // YouTube
+      if (c['Media Link'].indexOf('youtube.com/') > -1) {
+        media = $('<iframe></iframe>', {
+          src: c['Media Link'],
+          width: '100%',
+          height: '100%',
+          frameborder: '0',
+          allow: 'autoplay; encrypted-media',
+          allowfullscreen: 'allowfullscreen',
+        });
+
+        mediaContainer = $('<div></div', {
+          class: 'img-container'
+        }).append(media).after(source);
+      }
+
+      // If not YouTube: either audio or image
+      var mediaTypes = {
+        'jpg': 'img',
+        'jpeg': 'img',
+        'png': 'img',
+        'mp3': 'audio',
+      }
+
+      var mediaExt = c['Media Link'].split('.').pop();
+      var mediaType = mediaTypes[mediaExt];
+
+      if (mediaType) {
+        media = $('<' + mediaType + '>', {
+          src: c['Media Link'],
+          controls: mediaType == 'audio' ? 'controls' : '',
+        });
+
+        mediaContainer = $('<div></div', {
+          class: mediaType + '-container'
+        }).append(media).after(source);
+      }
 
       container
         .append('<p class="chapter-header">' + c['Chapter'] + '</p>')
-        .append(imgContainer)
-        .append(source)
+        .append(media ? mediaContainer : '')
+        .append(media ? source : '')
         .append('<p class="description">' + c['Description'] + '</p>');
 
       $('#contents').append(container);
+
     }
 
     changeAttribution();
@@ -186,6 +213,12 @@ $(window).on('load', function() {
 
     $('div#contents').scroll(function() {
       var currentPosition = $(this).scrollTop();
+
+      // Make title disappear on scroll
+      if (currentPosition < 200) {
+        $('#title').css('opacity', 1 - Math.min(1, currentPosition / 100));
+      }
+
       for (i = 0; i < pixelsAbove.length - 1; i++) {
         if (currentPosition >= pixelsAbove[i] && currentPosition < (pixelsAbove[i+1] - 2 * chapterContainerMargin) && currentlyInFocus != i) {
           // Remove styling for the old in-focus chapter and
@@ -195,6 +228,12 @@ $(window).on('load', function() {
 
           currentlyInFocus = i;
 
+          for (k = 0; k < pixelsAbove.length - 1; k++) {
+            changeMarkerColor(k, 'orange', 'blue');
+          }
+
+          changeMarkerColor(i, 'blue', 'orange');
+
           // Remove overlay tile layer if needed
           if (map.hasLayer(overlay)) {
             map.removeLayer(overlay);
@@ -203,8 +242,26 @@ $(window).on('load', function() {
           // Add chapter's overlay tiles if specified in options
           if (chapters[i]['Overlay'] != '') {
             var opacity = (chapters[i]['Overlay Transparency'] != '') ? parseFloat(chapters[i]['Overlay Transparency']) : 1;
-            overlay = L.tileLayer(chapters[i]['Overlay'], {opacity: opacity});
-            overlay.addTo(map);
+            var url = chapters[i]['Overlay'];
+
+            if (url.split('.').pop() == 'geojson') {
+              $.getJSON(url, function(geojson) {
+                overlay = L.geoJson(geojson, {
+                  style: function(feature) {
+                    return {
+                      fillColor: feature.properties.COLOR,
+                      weight: 1,
+                      opacity: 0.5,
+                      color: feature.properties.COLOR,
+                      fillOpacity: 0.5,
+                    }
+                  }
+                }).addTo(map);
+              });
+            } else {
+              overlay = L.tileLayer(chapters[i]['Overlay'], {opacity: opacity}).addTo(map);
+            }
+
           }
 
           // Fly to the new marker destination if latitude and longitude exist
